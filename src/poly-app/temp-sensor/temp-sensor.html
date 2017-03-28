@@ -1,0 +1,70 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-material/paper-material.html">
+
+<dom-module id="temp-sensor">
+  <template>
+    <style>
+      :host {
+        display: inline-block;
+        padding: 5px;
+        margin: 5px;
+      }
+
+      .card-content {
+          font-size: 30px;
+          min-width: 30px;
+          min-height: 30px;
+          vertical-align: middle;
+          text-align: center;
+          padding: 5px;
+          display: inline-block;
+      }
+
+    </style>
+
+    <paper-material elevation="1" >
+      {{name}}:&nbsp;
+      <paper-material elevation="2" class="card-content">
+            <div id="sensor">{{sensor}} &#8451;</div>
+      </paper-material>
+    </paper-material>
+
+  </template>
+
+
+<script>
+"use strict";
+
+class TempSensor  extends Polymer.Element {
+  static get is() { return 'temp-sensor'; }
+
+    ready() {
+      super.ready();
+    }
+
+    static get properties() {
+        return {
+          sensor: {
+            type: String,
+            readOnly: false,
+            notify: true,
+            value: "n/a",
+            reflectToAttribute: true
+          },
+          name: {
+            type: String,
+            readOnly: false,
+            notify: true,
+            value: "Measure: ",
+            reflectToAttribute: true
+          }
+
+        }
+    }
+}
+
+customElements.define(TempSensor.is, TempSensor);
+
+</script>
+
+</dom-module>
