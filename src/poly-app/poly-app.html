@@ -1,7 +1,7 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 
 <link rel="import" href="../../bower_components/font-roboto/roboto.html">
-
+<link rel="import" href="../../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
 <link rel="import" href="../../bower_components/paper-radio-button/paper-radio-button.html">
 <link rel="import" href="../../bower_components/paper-radio-group/paper-radio-group.html">
@@ -25,6 +25,8 @@
 <link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
 
 <link rel="import" href="temp-sensor/temp-sensor.html">
+<link rel="import" href="state-card/state-card.html">
+
 
 
 <dom-module id="poly-app">
@@ -61,11 +63,23 @@
         overflow: auto;
       }
 
-      .caption {
-        padding-left: 12px;
-        color: #a0a0a0;
+      .card-content {
+          font-size: 30px;
+          min-width: 30px;
+          min-height: 30px;
+          vertical-align: middle;
+          text-align: center;
+          padding: 5px;
+          margin: 5px;
+          display: inline-block;
       }
 
+      .title {
+          vertical-align: middle;
+          padding: 5px;
+          min-width: 220px;
+          display: inline-block;
+      }
     </style>
 
     <app-header reveals effects="waterfall">
@@ -75,15 +89,22 @@
         </app-toolbar>
     </app-header>
     <br/>
-    <temp-sensor name="Kitchen" sensor={{kitchen}}></temp-sensor>
-    <temp-sensor name="Entry room"></temp-sensor>
-    <temp-sensor name="Heater"></temp-sensor>
-    <temp-sensor name="Reverse"></temp-sensor>
-
-
+    <temp-sensor name="Kitchen" sensor=[[current_state.TempInside]]></temp-sensor>
+    <temp-sensor name="Entry room" sensor=[[current_state.TempEntryRoom]]></temp-sensor>
+    <temp-sensor name="Heater" sensor=[[current_state.TempHeater]]></temp-sensor>
+    <temp-sensor name="Reverse" sensor=[[current_state.TempReverse]]></temp-sensor>
     <br/>
-    <div>Desired t: <span id="desired_temp_label" class="caption"></span>&#8451;</div><br>
+    <paper-material elevation="1" class="title">
+    Desired t:
+      <paper-material elevation="2" class="card-content">
+        <span id="desired_temp_label"></span>&#8451;
+      </paper-material>
+    <br/>
     <paper-slider id="desired_temp" pin snaps min="10" max="22" max-markers="12" step="1"></paper-slider>
+    </paper-material>
+
+    <state-card name="Heater" state=[[current_state.HeaterState]]></state-card>
+    <state-card name="Heater Pump" state=[[current_state.PumpState]]></state-card>
 
     <iron-ajax
                id="requestStatus"
@@ -103,9 +124,7 @@
             <hr/>
             <paper-radio-group name="boiler_pump" selected="auto">
                 <paper-radio-button name="auto">Auto</paper-radio-button>
-                <br/>
                 <paper-radio-button name="on">On</paper-radio-button>
-                <br/>
                 <paper-radio-button name="off">Off</paper-radio-button>
             </paper-radio-group>
             <br/>
@@ -115,9 +134,7 @@
             <hr/>
             <paper-radio-group name="boiler" selected="auto">
                 <paper-radio-button name="auto">Auto</paper-radio-button>
-                <br/>
                 <paper-radio-button name="on">On</paper-radio-button>
-                <br/>
                 <paper-radio-button name="off">Off</paper-radio-button>
             </paper-radio-group>
             <br/>
@@ -143,6 +160,13 @@
                       notify: true,
                       value: 0,
                       reflectToAttribute: true
+                    },
+                    current_state: {
+                      type: Object,
+                      readOnly: false,
+                      notify: true,
+                      value: {},
+                      reflectToAttribute: true
                     }
 
 
@@ -158,7 +182,7 @@
                 });
                 */
                 this.$.desired_temp.addEventListener('value-change', e => {
-                    this._desired_temp_changed(e)
+                    this._desired_temp_changed(e);
                 });
 
                 var drawer = this.$.drawer;
@@ -167,19 +191,66 @@
                 });
 
                 this.$.requestStatus.generateRequest();
+                var host = "sasha123.ddns.ukrtel.net:1234";
+                this._wsconnect("ws://" + host + "/echo", this._ehandler);
+                //wsConnect("ws://" + host + "/relays", _rhandler);
+
             }
 
             _handleResponse(data) {
                   console.log(data.detail.response);
-                  this.kitchen = data.detail.response.TempInside;
+                  this.current_state = data.detail.response;
             };
 
             _desired_temp_changed(e) {
                 this.$.desired_temp_label.textContent = this.$.desired_temp.value;
-                console.log("triggered");
+                //console.log("triggered");
             };
 
-        }
+
+            _wsconnect(wsurl, handler) {
+              var ws = null;
+
+              if (ws) {
+                ws.close(3001);
+              } else {
+                ws = new WebSocket(wsurl);
+                ws.onopen = function() {
+                  console.log("Connection: " + wsurl + " Opened");
+                };
+
+                ws.onmessage = function(msg) {
+                  console.log(msg);
+                  handler(msg.data);
+                };
+
+                ws.onclose = function(evt) {
+                  ws = null;
+
+                  console.log('ws error: ' + evt.type);
+                  setTimeout(function(){wsConnect(wsurl, handler)}, 30000);
+                };
+
+                ws.onerror = function(evt) {
+                  if (ws.readyState == 1) {
+                    console.log('ws error: ' + evt.type);
+                  }
+                };
+              }
+            };
+
+            _ehandler (msg) {
+              //alert(msg)
+              var o = JSON.parse(msg);
+              console.log("nothing to do: " + o.TempInside);
+              if (o.TempInside) {
+                //N.TempDataHandler.callback(o);
+                //updateChart(o);
+              } else {
+                console.log("nothing to do: " + o.TempInside);
+              }
+            };
+        };
 
         window.customElements.define(MyApplication.is, MyApplication);
     </script>

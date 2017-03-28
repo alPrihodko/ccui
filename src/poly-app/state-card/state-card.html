@@ -1,7 +1,7 @@
 <link rel="import" href="../../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../../bower_components/paper-material/paper-material.html">
 
-<dom-module id="temp-sensor">
+<dom-module id="state-card">
   <template>
     <style>
       :host {
@@ -26,12 +26,21 @@
           display: inline-block;
       }
 
+      .normal {
+        color: black;
+      }
+
+      .red {
+        color: red;
+      }
+
+
     </style>
 
     <paper-material elevation="1" class="title">
       {{name}}:&nbsp;
       <paper-material elevation="2" class="card-content">
-            <div id="sensor">{{sensor}} &#8451;</div>
+            <div id="sensor">{{_format(state)}}</div>
       </paper-material>
     </paper-material>
 
@@ -41,17 +50,31 @@
 <script>
 "use strict";
 
-class TempSensor  extends Polymer.Element {
-  static get is() { return 'temp-sensor'; }
+class StateCard  extends Polymer.Element {
+  static get is() { return 'state-card'; }
 
     ready() {
       super.ready();
-    }
+    };
+
+    _format(st) {
+        //this.$.state_text = this.sired_temp.value;
+        console.log("triggered");
+        var response = "";
+        if (st) {
+          this.$.sensor.className = "red";
+          response = "ON";
+        } else {
+          this.$.sensor.className = "normal";
+          response = "OFF";
+        }
+        return response;
+    };
 
     static get properties() {
         return {
-          sensor: {
-            type: String,
+          state: {
+            type: Boolean,
             readOnly: false,
             notify: true,
             value: "n/a",
@@ -69,7 +92,7 @@ class TempSensor  extends Polymer.Element {
     }
 }
 
-customElements.define(TempSensor.is, TempSensor);
+customElements.define(StateCard.is, StateCard);
 
 </script>
 
