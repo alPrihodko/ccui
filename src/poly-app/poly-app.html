@@ -193,7 +193,7 @@
                 this.$.requestStatus.generateRequest();
                 var host = "sasha123.ddns.ukrtel.net:1234";
                 this._wsconnect("ws://" + host + "/echo", this._ehandler);
-                //wsConnect("ws://" + host + "/relays", _rhandler);
+                this._wsconnect("ws://" + host + "/relays", this._rhandler);
 
             }
 
@@ -250,6 +250,13 @@
                 console.log("nothing to do: " + o.TempInside);
               }
             };
+
+            _rhandler (msg) {
+              //alert(msg)
+              var o = JSON.parse(msg);
+              console.log("_rhandler to do: " + o);
+            };
+
         };
 
         window.customElements.define(MyApplication.is, MyApplication);
