@@ -24,6 +24,7 @@
 
 <link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
 
+
 <link rel="import" href="temp-sensor/temp-sensor.html">
 <link rel="import" href="state-card/state-card.html">
 
@@ -106,6 +107,13 @@
     <state-card name="Heater" state=[[current_state.HeaterState]]></state-card>
     <state-card name="Heater Pump" state=[[current_state.PumpState]]></state-card>
 
+    <google-chart
+      type='pie'
+      options='{"title": "Distribution of days in 2001Q1"}'
+      cols='[{"label":"Month", "type":"string"}, {"label":"Days", "type":"number"}]'
+      rows='[["Jan", 31],["Feb", 28],["Mar", 31]]'>
+    </google-chart>
+
     <iron-ajax
                id="requestStatus"
                url="http://[[host]]/control/currentState"
@@ -114,11 +122,11 @@
                <div>ajax</div>
     </iron-ajax>
 
+
     <iron-ajax
                auto
-               id="boilerPumpStatus"
-               url="http://[[host]]/control/pump"
-               params='{"state": {{pump_state}}}'
+               id="boilerPumpStatusChange"
+               url="http://[[host]]/control/pump?state={{pump_state}}"
                handle-as="text"
                on-response="_handleBoilerPumpStatus">
                <div>ajax</div>
@@ -126,9 +134,8 @@
 
     <iron-ajax
                auto
-               id="heaterStatus"
-               url="http://[[host]]/control/heat"
-               params='{"state": {{heater_state}}}'
+               id="heaterStatusChange"
+               url="http://[[host]]/control/heat?state={{heater_state}}"
                handle-as="text"
                on-response="_handleHeatStatus">
                <div>ajax</div>
@@ -188,14 +195,12 @@
                       type: String,
                       readOnly: false,
                       notify: true,
-                      value: '',
                       reflectToAttribute: true
                     },
                     pump_state: {
                       type: String,
                       readOnly: false,
                       notify: true,
-                      value: '',
                       reflectToAttribute: true
                     }
 
@@ -220,13 +225,24 @@
                 });
 
                 this.$.requestStatus.generateRequest();
-                this.$.boilerPumpStatus.generateRequest();
-                this.$.heaterStatus.generateRequest();
 
                 this._wsconnect("ws://" + this.host + "/echo", this._ehandler, this);
                 this._wsconnect("ws://" + this.host + "/relays", this._rhandler, this);
 
+                this._heaterListener = this._heaterSelected.bind(this);
+                this._boilerListener = this._boilerSelected.bind(this);
+
             }
+
+            _heaterSelected() {
+              console.log(this.$.heater.selected);
+              this.heater_state = this.$.heater.selected;
+            };
+
+            _boilerSelected() {
+              console.log(this.$.boiler_pump.selected);
+              this.pump_state = this.$.boiler_pump.selected;
+            };
 
             _handleResponse(data) {
                   //console.log(data.detail.response);
@@ -234,22 +250,43 @@
             };
 
             _handleBoilerPumpStatus(data) {
-                  console.log(data.detail.response);
-                  this.$.boiler_pump.select(data.detail.response);
-                  //this.current_state = data.detail.response;
+                this._setBoilerPumpStatus(data.detail.response)
             };
 
+            _setBoilerPumpStatus(ns) {
+              if (! ns) {
+                return;
+              };
+              this.$.boiler_pump.removeEventListener('paper-radio-group-changed',
+              this._boilerListener);
+
+              //console.log(ns);
+              this.$.boiler_pump.select(ns);
+
+              this.$.boiler_pump.addEventListener('paper-radio-group-changed',
+                  this._boilerListener);
+            }
+
             _handleHeatStatus(data) {
-                  //console.log(data.detail.response);
-                  this.$.heater.select(data.detail.response);
-                  //this.current_state = data.detail.response;
+              this._setHeatStatus(data.detail.response)
             };
+
+            _setHeatStatus (ns) {
+              if (! ns) {
+                return;
+              };
+              this.$.heater.removeEventListener('paper-radio-group-changed',
+              this._heaterListener);
+
+                  this.$.heater.select(ns);
+
+              this.$.heater.addEventListener('paper-radio-group-changed',
+                      this._heaterListener);
+            }
 
             _desired_temp_changed(e) {
                 this.$.desired_temp_label.textContent = this.$.desired_temp.value;
-                this.pump_state = "1";
                 //this.$.boilerPumpStatus.generateRequest();
-
                 //console.log("triggered");
             };
 
@@ -299,7 +336,17 @@
             _rhandler (msg, ctx) {
               //alert(msg)
               var o = JSON.parse(msg);
-              console.log("_rhandler to do: " + o);
+              console.log("value: " + o.Value);
+              switch (o.Type) {
+                case "pumpStateChanged":
+                  ctx._setBoilerPumpStatus(o.Value);
+                break;
+
+                case "heatStateChanged":
+                ctx._setHeatStatus(o.Value);
+                break;
+
+              };
             };
 
         };
