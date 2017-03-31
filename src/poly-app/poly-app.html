@@ -27,7 +27,7 @@
 
 <link rel="import" href="temp-sensor/temp-sensor.html">
 <link rel="import" href="state-card/state-card.html">
-
+<link rel="import" href="go-chart/go-chart.html">
 
 
 <dom-module id="poly-app">
@@ -106,13 +106,13 @@
 
     <state-card name="Heater" state=[[current_state.HeaterState]]></state-card>
     <state-card name="Heater Pump" state=[[current_state.PumpState]]></state-card>
-
-    <google-chart
+    <br/> <hr/><br/>
+    <go-chart
       type='pie'
       options='{"title": "Distribution of days in 2001Q1"}'
       cols='[{"label":"Month", "type":"string"}, {"label":"Days", "type":"number"}]'
       rows='[["Jan", 31],["Feb", 28],["Mar", 31]]'>
-    </google-chart>
+    </go-chart>
 
     <iron-ajax
                id="requestStatus"

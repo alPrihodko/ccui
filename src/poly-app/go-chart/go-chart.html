@@ -1,0 +1,149 @@
+<link rel="import" href="../../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../../bower_components/iron-ajax/iron-ajax.html">
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+<dom-module id="go-chart">
+  <template>
+    <style>
+      :host {
+
+      }
+
+    </style>
+    <iron-ajax
+               id="loadChart"
+               url="http://[[host]]/control/hdata?from=[[consts.ChartTimeLimit]]"
+               handle-as="json"
+               on-response="_handleChartResponse">
+    </iron-ajax>
+
+    <div id="curve_chart" style="width: 900px; height: 500px"></div>
+
+
+  </template>
+
+
+<script>
+"use strict";
+
+class GoChart  extends Polymer.Element {
+  static get is() { return 'go-chart'; }
+
+  static get properties() {
+      return {
+        host: {
+          type: String,
+          value: "sasha123.ddns.ukrtel.net:1234"
+        },
+        data: {
+          type: Object,
+          readOnly: false,
+          notify: true,
+          reflectToAttribute: true
+        },
+        options: {
+          type: Object,
+          readOnly: false,
+          notify: true,
+          reflectToAttribute: true
+        },
+        chart: {
+          type: Object,
+          readOnly: false,
+          notify: true,
+          reflectToAttribute: true
+        },
+        consts: {
+          type: Object,
+          readOnly: false
+        }
+      }
+  };
+
+    constructor() {
+      super();
+    }
+
+    ready() {
+      super.ready();
+      google.charts.load('current', {'packages':['corechart']});
+      this._go_draw = this._draw_chart.bind(this);
+      google.charts.setOnLoadCallback(this._go_draw);
+
+      this.consts = {"ChartTimeLimit": 60*60};
+    };
+
+    _draw_chart() {
+
+      this.data = new google.visualization.DataTable();
+
+      this.data.addColumn('datetime', 'XAxis');
+      this.data.addColumn('number', 'Kitchen');
+      this.data.addColumn('number', 'Heater reverse');
+      this.data.addColumn('number', 'Entry room');
+      this.data.addColumn('number', 'Heater');
+
+
+
+      this.options = {
+        title: 'Climate monitor',
+        curveType: 'function',
+        legend: { position: 'bottom' },
+        page: 'enable',
+        pageSize: 20
+      };
+
+      this.chart = new google.visualization.LineChart(this.$.curve_chart);
+      this._loadChart();
+    };
+
+    _handleChartResponse (data) {
+      var ar = [];
+      for (var i=0; i <  data.detail.response.length; i++) {
+        var r = data.detail.response[i];
+        ar.push([new Date(r.Timestamp*1000),
+          parseFloat(r.TempInside), parseFloat(r.TempReverse),
+          parseFloat(r.TempEntryRoom), parseFloat(r.TempHeater)]);
+      }
+      this.data.addRows(ar);
+      this.chart.draw(this.data, this.options);
+    };
+
+    _loadChart() {
+      this.data.removeRows(0, this.data.getNumberOfRows());
+      console.log("reading data: from=" + this.consts.ChartTimeLimit);
+      this.$.loadChart.generateRequest();
+
+      /*
+      fetch('/control/hdata?from=' + this.consts.ChartTimeLimit)
+        .then(function(response) {
+          if (response.status == 200) {
+            // Examine the text in the response
+
+            response.json().then(function(dt) {
+              //console.log(dt);
+              var ar = [];
+              for (var i=0; i < dt.length; i++) {
+                var r = dt[i];
+                ar.push([new Date(r.Timestamp*1000),
+                  parseFloat(r.TempInside), parseFloat(r.TempReverse),
+                  parseFloat(r.TempEntryRoom), parseFloat(r.TempHeater)]);
+              }
+              this.data.addRows(ar);
+              this.chart.draw(data, options);
+            });
+
+          } else {
+            alert(response.statusText)
+          }
+        });
+        */
+    }
+}
+
+customElements.define(GoChart.is, GoChart);
+
+</script>
+
+</dom-module>
