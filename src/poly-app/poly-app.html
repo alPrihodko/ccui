@@ -118,6 +118,15 @@
 
 
     <iron-ajax
+              auto
+              id="configStatusChange"
+              url="http://[[host]]/control/config?state={{desired_temp_value}}"
+              handle-as="json"
+              on-response="_handleConfigDesiredTemp">
+              <div>ajax</div>
+    </iron-ajax>
+
+    <iron-ajax
                auto
                id="boilerPumpStatusChange"
                url="http://[[host]]/control/pump?state={{pump_state}}"
@@ -196,6 +205,12 @@
                         readOnly: false,
                         notify: true,
                         reflectToAttribute: true
+                    },
+                    desired_temp_value: {
+                        type: Number,
+                        readOnly: false,
+                        notify: true,
+                        reflectToAttribute: true
                     }
 
                 };
@@ -215,9 +230,9 @@
                   console.log("triggered");
                 });
                 */
-                this.$.desired_temp.addEventListener('value-change', e => {
-                    this._desired_temp_changed(e);
-                });
+                //this.$.desired_temp.addEventListener('value-change', e => {
+                //    this._desired_temp_changed(e);
+                //});
 
                 var drawer = this.$.drawer;
                 this.$.toggle.addEventListener('tap', function() {
@@ -229,8 +244,10 @@
                 this._wsconnect("ws://" + this.host + "/echo", this._ehandler, this);
                 this._wsconnect("ws://" + this.host + "/relays", this._rhandler, this);
 
-                this._heaterListener = this._heaterSelected.bind(this);
-                this._boilerListener = this._boilerSelected.bind(this);
+                this._heaterListener    = this._heaterSelected.bind(this);
+                this._boilerListener    = this._boilerSelected.bind(this);
+                this._desiredTempListener = this._desired_temp_changed.bind(this);
+
 
             }
 
@@ -254,9 +271,9 @@
             };
 
             _setBoilerPumpStatus(ns) {
-                if (!ns) {
-                    return;
-                };
+                //if (!ns) {
+                //    return;
+                //};
                 this.$.boiler_pump.removeEventListener('paper-radio-group-changed',
                     this._boilerListener);
 
@@ -272,9 +289,9 @@
             };
 
             _setHeatStatus(ns) {
-                if (!ns) {
-                    return;
-                };
+                //if (!ns) {
+                //    return;
+                //};
                 this.$.heater.removeEventListener('paper-radio-group-changed',
                     this._heaterListener);
 
@@ -284,8 +301,28 @@
                     this._heaterListener);
             }
 
-            _desired_temp_changed(e) {
+            _handleConfigDesiredTemp(data) {
+              console.log(data.detail.response);
+              this._setConfig(data.detail.response.DesiredTemp);
+            };
+
+            _setConfig(ns) {
+                //if (!ns) {
+                //    return;
+                //};
+                this.$.desired_temp.removeEventListener('value-change',
+                    this._desiredTempListener);
+
+                this.$.desired_temp.value = ns;
                 this.$.desired_temp_label.textContent = this.$.desired_temp.value;
+
+                this.$.desired_temp.addEventListener('value-change',
+                    this._desiredTempListener);
+            };
+
+            _desired_temp_changed() {
+                this.$.desired_temp_label.textContent = this.$.desired_temp.value;
+                this.desired_temp_value = this.$.desired_temp.value; //trigger request
                 //this.$.boilerPumpStatus.generateRequest();
                 //console.log("triggered");
             };
