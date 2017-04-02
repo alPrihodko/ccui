@@ -42,7 +42,7 @@
       }
 
       app-header {
-        background-color: #4285f4;
+        background-color: #22AFFF;
         color: #fff;
       }
       app-header paper-icon-button {
@@ -66,9 +66,9 @@
       }
 
       .card-content {
-          font-size: 30px;
-          min-width: 30px;
-          min-height: 30px;
+          font-size: 15px;
+          min-width: 15px;
+          min-height: 15px;
           vertical-align: middle;
           text-align: center;
           padding: 5px;
@@ -88,32 +88,25 @@
       <app-toolbar>
         <paper-icon-button id="toggle" icon="menu"></paper-icon-button>
         <div main-title> Home control </div>
+        <temp-sensor name="Kitchen" sensor=[[current_state.TempInside]]></temp-sensor>
+        <temp-sensor name="Entry room" sensor=[[current_state.TempEntryRoom]]></temp-sensor>
+        <state-card name="Heater" state=[[current_state.HeaterState]]></state-card>
+        <state-card name="Heater Pump" state=[[current_state.PumpState]]></state-card>
+
         </app-toolbar>
     </app-header>
     <br/>
-    <temp-sensor name="Kitchen" sensor=[[current_state.TempInside]]></temp-sensor>
-    <temp-sensor name="Entry room" sensor=[[current_state.TempEntryRoom]]></temp-sensor>
     <temp-sensor name="Heater" sensor=[[current_state.TempHeater]]></temp-sensor>
     <temp-sensor name="Reverse" sensor=[[current_state.TempReverse]]></temp-sensor>
-    <br/>
     <paper-material elevation="1" class="title">
     Desired t:
       <paper-material elevation="2" class="card-content">
         <span id="desired_temp_label"></span>&#8451;
       </paper-material>
-    <br/>
     <paper-slider id="desired_temp" pin snaps min="10" max="22" max-markers="12" step="1"></paper-slider>
     </paper-material>
-
-    <state-card name="Heater" state=[[current_state.HeaterState]]></state-card>
-    <state-card name="Heater Pump" state=[[current_state.PumpState]]></state-card>
     <br/> <hr/><br/>
-    <go-chart
-      type='pie'
-      options='{"title": "Distribution of days in 2001Q1"}'
-      cols='[{"label":"Month", "type":"string"}, {"label":"Days", "type":"number"}]'
-      rows='[["Jan", 31],["Feb", 28],["Mar", 31]]'>
-    </go-chart>
+    <go-chart id="chart">   </go-chart>
 
     <iron-ajax
                id="requestStatus"
@@ -337,6 +330,7 @@
                 //console.log("nothing to do: " + o.TempInside);
                 if (o.TempInside) {
                     ctx.current_state = o;
+                    ctx.$.chart.UpdateChart(o);
                 } else {
                     console.log("incorrect response" + o);
                 }

@@ -1,6 +1,9 @@
 <link rel="import" href="../../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../../bower_components/paper-slider/paper-slider.html">
+<link rel="import" href="../../../bower_components/paper-material/paper-material.html">
+
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
 <dom-module id="go-chart">
@@ -10,15 +13,44 @@
 
       }
 
+      .title {
+          vertical-align: middle;
+          padding: 5px;
+          min-width: 20px;
+          display: inline-block;
+      }
+      .card-content {
+          font-size: 15px;
+          min-width: 15px;
+          min-height: 15px;
+          vertical-align: middle;
+          text-align: center;
+          padding: 5px;
+          margin: 5px;
+          display: inline-block;
+      }
+
     </style>
     <iron-ajax
                id="loadChart"
-               url="http://[[host]]/control/hdata?from=[[consts.ChartTimeLimit]]"
+               url="http://[[host]]/control/hdata?from={{chart_time_limit}}"
                handle-as="json"
                on-response="_handleChartResponse">
     </iron-ajax>
+<paper-material elevation="1" class="title">
+    Period:
+    <paper-material elevation="2" class="card-content">
+        <span id="time_period">Now</span>
+    </paper-material>
+    <paper-material elevation="1" class="title">
+        <paper-slider id="period_slider"
+          pin snaps min="1" max="5" step="1" toggles
+          >
+        </paper-slider>
+    </paper-material>
+</paper-material>
 
-    <div id="curve_chart" style="width: 900px; height: 500px"></div>
+    <div id="curve_chart" ></div>
 
 
   </template>
@@ -29,6 +61,12 @@
 
 class GoChart  extends Polymer.Element {
   static get is() { return 'go-chart'; }
+
+  constructor () {
+    super();
+    this.host = StaticGlobals.GetHostName();
+    //console.log(this.host);
+  };
 
   static get properties() {
       return {
@@ -56,14 +94,19 @@ class GoChart  extends Polymer.Element {
         },
         consts: {
           type: Object,
-          readOnly: false
+          notify: true,
+          readOnly: false,
+          reflectToAttribute: true
+        },
+        chart_time_limit: {
+          type: Number,
+          notify: true,
+          readOnly: false,
+          reflectToAttribute: true
         }
       }
   };
 
-    constructor() {
-      super();
-    }
 
     ready() {
       super.ready();
@@ -71,7 +114,44 @@ class GoChart  extends Polymer.Element {
       this._go_draw = this._draw_chart.bind(this);
       google.charts.setOnLoadCallback(this._go_draw);
 
-      this.consts = {"ChartTimeLimit": 60*60};
+      this.consts = {"DATALIMIT": 5000};
+      this.chart_time_limit = 60*60;
+
+      this.$.period_slider.addEventListener('value-change', e => {
+          this._period_changed(e);
+      });
+    };
+
+    _period_changed(e) {
+        var v = this.$.period_slider.value
+        //console.log("id: " + v);
+        switch (v) {
+          case 1:
+            this.$.time_period.textContent = "Last Hour";
+            this.chart_time_limit = 60*60;
+            break;
+          case 2:
+            this.$.time_period.textContent = "12 Hours";
+            this.chart_time_limit = 60*60 * 12;
+            break;
+          case 3:
+            this.$.time_period.textContent = "24 Hours";
+            this.chart_time_limit = 60*60 * 24;
+            break;
+          case 4:
+            this.$.time_period.textContent = "3 Days";
+            this.chart_time_limit = 60*60 * 24 * 3;
+            break;
+          case 5:
+            this.$.time_period.textContent = "7 Days";
+            this.chart_time_limit = 60*60 * 24 * 7;
+            break;
+          default:
+            this.chart_time_limit = 60*60;
+        };
+        //console.log("it: " + this.chart_time_limit);
+
+        this._loadChart();
     };
 
     _draw_chart() {
@@ -99,6 +179,7 @@ class GoChart  extends Polymer.Element {
     };
 
     _handleChartResponse (data) {
+      console.log("activated" + data.detail.response.length);
       var ar = [];
       for (var i=0; i <  data.detail.response.length; i++) {
         var r = data.detail.response[i];
@@ -110,35 +191,26 @@ class GoChart  extends Polymer.Element {
       this.chart.draw(this.data, this.options);
     };
 
+    UpdateChart(dat) {
+        console.log("chart updated: " + dat.Timestamp);
+        if (this.data) {
+          this.data.addRow([new Date(dat.Timestamp*1000), parseFloat(dat.TempInside),
+            parseFloat(dat.TempReverse),
+            parseFloat(dat.TempEntryRoom),
+            parseFloat(dat.TempHeater)]);
+          this.chart.draw(this.data, this.options);
+          if (this.data.getNumberOfRows() > this.consts.DATALIMIT) {
+            this.data.removeRows(0, 5);
+          }
+        } else {
+          console.log("Chart data is not initialized yet");
+        }
+    };
+
     _loadChart() {
       this.data.removeRows(0, this.data.getNumberOfRows());
       console.log("reading data: from=" + this.consts.ChartTimeLimit);
       this.$.loadChart.generateRequest();
-
-      /*
-      fetch('/control/hdata?from=' + this.consts.ChartTimeLimit)
-        .then(function(response) {
-          if (response.status == 200) {
-            // Examine the text in the response
-
-            response.json().then(function(dt) {
-              //console.log(dt);
-              var ar = [];
-              for (var i=0; i < dt.length; i++) {
-                var r = dt[i];
-                ar.push([new Date(r.Timestamp*1000),
-                  parseFloat(r.TempInside), parseFloat(r.TempReverse),
-                  parseFloat(r.TempEntryRoom), parseFloat(r.TempHeater)]);
-              }
-              this.data.addRows(ar);
-              this.chart.draw(data, options);
-            });
-
-          } else {
-            alert(response.statusText)
-          }
-        });
-        */
     }
 }
 
