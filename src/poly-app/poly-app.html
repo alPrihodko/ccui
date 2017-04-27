@@ -349,7 +349,7 @@
 
                         console.log('ws error: ' + evt.type);
                         setTimeout(function() {
-                            wsConnect(wsurl, handler)
+                            ctx._wsconnect(wsurl, handler, ctx)
                         }, 30000);
                     };
 
