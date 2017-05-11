@@ -1,7 +1,7 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 
 <link rel="import" href="../../bower_components/font-roboto/roboto.html">
-<link rel="import" href="../../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
 <link rel="import" href="../../bower_components/paper-radio-button/paper-radio-button.html">
 <link rel="import" href="../../bower_components/paper-radio-group/paper-radio-group.html">
@@ -247,8 +247,6 @@
                 this._heaterListener    = this._heaterSelected.bind(this);
                 this._boilerListener    = this._boilerSelected.bind(this);
                 this._desiredTempListener = this._desired_temp_changed.bind(this);
-
-
             }
 
             _heaterSelected() {
@@ -271,9 +269,9 @@
             };
 
             _setBoilerPumpStatus(ns) {
-                //if (!ns) {
-                //    return;
-                //};
+                if (!ns) {
+                    return;
+                };
                 this.$.boiler_pump.removeEventListener('paper-radio-group-changed',
                     this._boilerListener);
 
@@ -289,9 +287,9 @@
             };
 
             _setHeatStatus(ns) {
-                //if (!ns) {
-                //    return;
-                //};
+                if (!ns) {
+                    return;
+                };
                 this.$.heater.removeEventListener('paper-radio-group-changed',
                     this._heaterListener);
 
@@ -302,14 +300,16 @@
             }
 
             _handleConfigDesiredTemp(data) {
-              console.log(data.detail.response);
-              this._setConfig(data.detail.response.DesiredTemp);
+              //console.log(data.detail.response);
+              if (data.detail.response) {
+                this._setConfig(data.detail.response.DesiredTemp);
+              }
             };
 
             _setConfig(ns) {
-                //if (!ns) {
-                //    return;
-                //};
+                if (!ns) {
+                    return;
+                };
                 this.$.desired_temp.removeEventListener('value-change',
                     this._desiredTempListener);
 
@@ -384,6 +384,10 @@
 
                     case "heatStateChanged":
                         ctx._setHeatStatus(o.Value);
+                        break;
+
+                    case "desiredTempChanged":
+                        ctx._setConfig(o.Value);
                         break;
 
                 };
